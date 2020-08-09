@@ -2,8 +2,6 @@ import warnings
 import tensorflow as tf
 import logging
 
-from datetime import datetime
-
 from stable_baselines import PPO2
 from stable_baselines.common.policies import MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -18,11 +16,8 @@ tf.autograph.set_verbosity(0)
 tf.get_logger().setLevel('INFO')
 tf.get_logger().setLevel(logging.ERROR)
 
-now = datetime.now()
-logdir = "./tensorboard/" + now.strftime("%Y%m%d-%H%M%S") + "/"
-file_writer = tf.summary.FileWriter(logdir)
-
 data_generator = DataGenerator().training_generator()
+
 train_df, instrument_name = next(data_generator)
 training_env = DummyVecEnv([lambda: StockMarketEnv(train_df)])
 
@@ -39,8 +34,10 @@ model = PPO2(
     lam=0.9593020393096344)
 
 model.learn(
-    total_timesteps=5,
+    total_timesteps=1000000,
     tb_log_name="training_logs")
+
+model.save('./models/model_after_' + instrument_name)
 
 is_having_new_instruments = True
 
@@ -50,7 +47,8 @@ while is_having_new_instruments:
         training_env = DummyVecEnv([lambda: StockMarketEnv(train_df)])
         model.set_env(training_env)
         model.learn(
-            total_timesteps=5,
+            total_timesteps=1000000,
             tb_log_name="training_logs")
+        model.save('./models/model_after_' + instrument_name)
     except StopIteration:
         is_having_new_instruments = False
